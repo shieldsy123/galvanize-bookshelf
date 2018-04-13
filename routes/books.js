@@ -1,43 +1,57 @@
 'use strict';
 
 const express = require('express');
-const knex = require('../knex.js')
+
 // eslint-disable-next-line new-cap
 const router = express.Router();
-
-// YOUR CODE HERE
+const knex = require('../knex');
+// humps is an underscore-to-camelCase converter (& vice-versa) for strings and object keys in JavaScript
+const humps = require('humps');
+const KEY = process.env.JWT_KEY
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 
 router.get('/books', (req, res, next) => {
-  knex.column('author', 'cover_url as coverUrl', 'updated_at as updatedAt', 'created_at as createdAt', 'description', 'genre', 'id', 'title').select()
-    .from('books')
-    .orderBy('title', 'asc')
-    .then((result) => {
-      res.send(result)
+  knex('books')
+    .then((data) => {
+      data.sort((a, b) => {
+        if (a.title > b.title) {
+          return 1
+        } else {
+          return -1
+        }
+      })
+      res.json(humps.camelizeKeys(data))
     })
-  // next({error: 'Error 404'}
+    .catch((err) => {
+      next(err)
+    })
 })
 
 router.get('/books/:id', (req, res, next) => {
-  let id = req.params.id
-  knex.column('author', 'cover_url as coverUrl', 'updated_at as updatedAt', 'created_at as createdAt', 'description', 'genre', 'id', 'title').select()
-    .from('books')
-    .where('books.id', id)
-    .then(result => {
-      res.send(result[0])
+  knex('books')
+    .where('id', req.params.id)
+    .then((data) => {
+      res.json(humps.camelizeKeys(data[0]))
+    })
+    .catch((err) => {
+      next(err)
     })
 })
 
 router.post('/books', (req, res, next) => {
-  knex('books').insert({
+  knex('books')
+    .insert(humps.decamelizeKeys({
       title: req.body.title,
       author: req.body.author,
       genre: req.body.genre,
       description: req.body.description,
-      cover_url: req.body.coverUrl,
-    }, '*')
-    .returning(['id', 'title', 'author', 'genre', 'cover_url as coverUrl', 'description'])
-    .then(result => {
-      res.status(200).send(result[0])
+      cover_url: req.body.coverUrl
+    }))
+    .returning('*')
+    .then((data) => {
+
+      res.json(humps.camelizeKeys(data[0]))
     })
     .catch((err) => {
       next(err)
@@ -46,35 +60,48 @@ router.post('/books', (req, res, next) => {
 
 router.patch('/books/:id', (req, res, next) => {
   knex('books')
-    .where({
-      id: req.params.id
+    .where('id', req.params.id)
+    .then((data) => {
+      knex('books')
+        .where('id', req.params.id)
+        .limit(1)
+        .update(humps.decamelizeKeys({
+          title: req.body.title,
+          author: req.body.author,
+          genre: req.body.genre,
+          description: req.body.description,
+          cover_url: req.body.coverUrl
+        }))
+        .returning('*')
+        .then((data) => {
+          res.json(humps.camelizeKeys(data[0]))
+        })
     })
-    .update({
-      title: req.body.title,
-      author: req.body.author,
-      genre: req.body.genre,
-      description: req.body.description,
-      cover_url: req.body.coverUrl,
-    }, '*')
-    .returning(['id', 'title', 'author', 'genre', 'cover_url as coverUrl', 'description'])
-    .then((result) => {
-      res.status(200).send(result[0])
+    .catch((err) => {
+      next(err)
     })
 })
 
 router.delete('/books/:id', (req, res, next) => {
-  return knex('books')
-    .where({
-      id: req.params.id
-    })
-    .del()
-    .returning(['title', 'author', 'genre', 'cover_url as coverUrl', 'created_at AS createdAt', 'description'])
+  knex('books')
+    .where('id', req.params.id)
+    .first()
     .then((data) => {
-      res.status(200).send(data[0])
+      if (!data) return next()
+      const decammed = humps.decamelizeKeys(data)
+      const newData = {
+        title: decammed.title,
+        author: decammed.author,
+        genre: decammed.genre,
+        description: decammed.description,
+        cover_url: decammed.cover_url
+      }
+      return knex('books')
+        .where('id', req.params.id)
+        .then((row) => {
+          res.json(humps.camelizeKeys(newData))
+        })
     })
 })
-
-
-
 
 module.exports = router;
