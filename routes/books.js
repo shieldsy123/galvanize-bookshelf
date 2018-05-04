@@ -10,12 +10,10 @@ const bcrypt = require('bcrypt')
 // eslint-disable-next-line new-cap
 const router = express.Router()
 
-// YOUR CODE HERE
 // RETRIEVE ALL BOOKS FROM THE /BOOKS DIRECTORY
 router.get('/books', (req, res, next) => {
   knex('books').orderBy('title')
     .then((arr) => {
-      // console.log(arr)
       res.json(humps.camelizeKeys(arr))
     })
     .catch((error) => {
@@ -73,13 +71,13 @@ router.delete('/books/:id', (req, res, next) => {
     .first()
     .then((object) => {
       if (!object) return next()
-      const decamObject = humps.decamelizeKeys(object)
+      const decamObj = humps.decamelizeKeys(object)
       const finalObj = {
-        title: decamObject.title,
-        author: decamObject.author,
-        genre: decamObject.genre,
-        description: decamObject.description,
-        cover_url: decamObject.cover_url
+        title: decamObj.title,
+        author: decamObj.author,
+        genre: decamObj.genre,
+        description: decamObj.description,
+        cover_url: decamObj.cover_url
       }
       return knex('books')
         .where('id', req.params.id)
@@ -90,4 +88,4 @@ router.delete('/books/:id', (req, res, next) => {
 
 })
 
-module.exports = router
+module.exports = router;
