@@ -1,5 +1,5 @@
 
-exports.up = function(knex, Promise) {
+exports.up = (knex, Promise) => {
   return knex.schema.createTable('favorites', (table) => {
     table.increments()
     table.integer('user_id').notNullable().references('users.id').onDelete('CASCADE')
@@ -9,6 +9,6 @@ exports.up = function(knex, Promise) {
   })
 }
 
-exports.down = function(knex, Promise) {
+exports.down = (knex, Promise) => {
   return knex.schema.dropTableIfExists('favorites')
 }
